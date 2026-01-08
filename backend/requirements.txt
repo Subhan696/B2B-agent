@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+python-dotenv
+duckduckgo-search
+playwright
+beautifulsoup4
+google-generativeai
+pydantic

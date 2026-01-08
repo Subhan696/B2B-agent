@@ -7,7 +7,8 @@ def search_web(query: str, max_results: int = 5) -> List[Dict]:
     """
     try:
         with DDGS() as ddgs:
-            results = list(ddgs.text(query, max_results=max_results))
+            # region='wt-wt' forces "No Region" (Global/English bias) to avoid random local results
+            results = list(ddgs.text(query, region='wt-wt', timelimit='y', max_results=max_results))
         return results
     except Exception as e:
         print(f"Search error: {e}")

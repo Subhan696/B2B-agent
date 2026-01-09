@@ -26,14 +26,16 @@ class B2BAgent:
         
         news_query = f"latest product news {domain} 2024 2025"
         ceo_query = f"CEO of {domain}"
+        email_format_query = f"email address format {domain} contact"
         
         # Helper to run blocking tool in async
         def run_search(q): return search_web(q, max_results=3)
         
-        # Execute searches
-        news_results, ceo_results = await asyncio.gather(
+        # Execute searches (added email format search)
+        news_results, ceo_results, email_results = await asyncio.gather(
             asyncio.to_thread(run_search, news_query),
-            asyncio.to_thread(run_search, ceo_query)
+            asyncio.to_thread(run_search, ceo_query),
+            asyncio.to_thread(run_search, email_format_query)
         )
         
         # Identify CEO Name (Naive approach: ask LLM or parse first result)
@@ -65,18 +67,20 @@ class B2BAgent:
         1. WEBSITE VARIANT: {landing_page_text[:2000]}...
         2. LATEST NEWS: {str(news_results)}
         3. CEO ACTIVITY: {str(activity_results)}
+        4. EMAIL PATTERNS: {str(email_results)}
 
         TASK:
-        1. Identify 3 specific "Pain Points" or opportunities based on the news/website.
-        2. Draft a personalized cold email to the CEO. Pitch a solution related to "AI Automation" as a service.
-        3. Write a 30-second video script for a Loom video to accompany the email.
+        1. Identify 3 specific "Pain Points" or opportunities. **CITATION REQUIRED**: You must append (Source: [URL]) to every pain point.
+        2. GUESS THE CEO's EMAIL: Analyze the 'EMAIL PATTERNS' research. If the pattern is 'first.last@domain', output 'patrick.collison@{domain}'. specificy if it is a guess.
+        3. Draft a personalized cold email to the CEO.
+        4. Write a 30-second video script.
 
         OUTPUT FORMAT (JSON):
         {{
-            "news_headlines": ["headline 1", "headline 2"],
-            "ceo_name": "{ceo_name}",
-            "ceo_recent_activity": ["activity 1", "activity 2"],
-            "pain_points": ["point 1", "point 2", "point 3"],
+            "news_headlines": ["headline 1 (Source: url)", "headline 2 (Source: url)"],
+            "ceo_name": "{ceo_name} (Email Guess: first.last@{domain})",
+            "ceo_recent_activity": ["activity 1 (Source: url)", "activity 2"],
+            "pain_points": ["point 1 (Source: url)", "point 2"],
             "email_draft": "Subject: ... Body: ...",
             "video_script": "..."
         }}

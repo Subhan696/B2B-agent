@@ -1,46 +1,49 @@
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 import os
+import time
+import random
 
 def generate_content(prompt: str) -> str:
     """
-    Generates content using Gemini, trying multiple model versions.
-    Requires GEMINI_API_KEY in environment variables.
+    Generates content using the new Google GenAI SDK (v1).
+    Uses 'gemini-3-flash-preview' as requested.
     """
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
         return "Error: GEMINI_API_KEY not set. Please set it in .env file."
     
     try:
-        genai.configure(api_key=api_key)
+        client = genai.Client(api_key=api_key)
         
-        # Comprehensive list of potential model names based on user availability
-        models_to_try = [
-            'models/gemini-2.0-flash',
-            'models/gemini-2.5-flash',
-            'models/gemini-flash-latest',
-            'models/gemini-2.0-flash-001',
-            'gemini-2.0-flash',
-            'gemini-2.5-flash',
-            'models/gemini-1.5-flash', # Fallback
-            'gemini-1.5-flash'
-        ]
+        # Explicitly using the user-requested model
+        model_name = "gemini-3-flash-preview" 
         
-        last_error = None
-        
-        print(f"LLM: Starting generation with API Key ending in ...{str(api_key)[-4:]}")
-        
-        for model_name in models_to_try:
+        print(f"LLM: Starting generation with {model_name}...")
+
+        # Retry loop for Rate Limiting
+        max_retries = 3
+        for attempt in range(max_retries):
             try:
-                print(f"LLM: Trying model: {model_name}")
-                model = genai.GenerativeModel(model_name)
-                response = model.generate_content(prompt)
-                print(f"LLM: Success with {model_name}")
+                response = client.models.generate_content(
+                    model=model_name,
+                    contents=prompt
+                )
+                print(f"LLM: Success w/ {model_name}")
                 return response.text
             except Exception as e:
-                print(f"LLM: Failed with {model_name}: {e}")
-                last_error = e
-                continue
-                
-        return f"LLM Error: Could not generate content with any model. Last error: {last_error}"
+                error_str = str(e)
+                if "429" in error_str:
+                    wait_time = 10 + (attempt * 5)
+                    print(f"LLM: 429 Rate Limit. Retrying in {wait_time}s...")
+                    time.sleep(wait_time)
+                    continue
+                elif "403" in error_str:
+                    print("LLM Error: 403 Permission Denied. Check your API Key.")
+                    return "LLM Error: API Key Invalid or Permissions Denied."
+                else:
+                    print(f"LLM Error: {e}")
+                    raise e
+
     except Exception as e:
         return f"LLM Configuration Error: {e}"
